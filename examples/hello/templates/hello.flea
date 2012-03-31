@@ -1,0 +1,30 @@
+% local name, visits, visitsSession = ...
+
+{( "header" )}
+
+Hey, {< name >}, of your <strong>{{ visits }}</strong> visit{{ string.plural( visits ) }},
+<strong>{{ visitsSession }}</strong> {{ string.plural( visitsSession, "have", "has" ) }} been this session!
+
+<h3>GET parameters</h3>
+
+<table>
+	<tr>
+		<th>Keys</th>
+		<th>Values</th>
+	</tr>
+
+	% local n = 0
+	% for k, v in request.get() do
+		% n = n + 1
+		<tr>
+			<td>{< k >}</td>
+			<td>{< v >}</td>
+		</tr>
+	% end
+	
+	% if n == 0 then
+		<tr>
+			<td colspan="2">nothing :(</td>
+		</tr>
+	% end
+</table>
