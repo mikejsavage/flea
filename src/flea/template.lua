@@ -3,6 +3,8 @@
 
 local TemplatesDir = "templates"
 
+local Templates
+
 local Actions = {
 	-- run code
 	[ "{%" ] = function( block )
@@ -91,7 +93,7 @@ local function loadTemplates( path, relPath )
 end
 
 if flea.production then
-	flea.templates = setmetatable( { }, {
+	Templates = setmetatable( { }, {
 		__index = function( self, name )
 			assert( nil, "no such template: %s" % name )
 		end,
@@ -101,7 +103,7 @@ if flea.production then
 		loadTemplates( TemplatesDir, "" )
 	end
 else
-	flea.templates = setmetatable( { }, {
+	Templates = setmetatable( { }, {
 		__index = function( self, name )
 			assert( type( name ) == "string", "template name must be a string" )
 
@@ -114,3 +116,5 @@ else
 		end,
 	} )
 end
+
+return Templates

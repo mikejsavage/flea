@@ -37,6 +37,5 @@ printf( "http://0.0.0.0:%d/ [%s]",
 	production and "production" or "testing"
 )
 
-require( "flea.template" )
 require( "flea.handler" )
 require( "flea.errorHandler" )

@@ -1,3 +1,4 @@
+local templates = require( "flea.template" )
 local routes = require( "flea.routes" )
 local mime = require( "flea.mime" )
 local cookie = require( "flea.cookie" )
@@ -85,7 +86,7 @@ local function requestAddMethods( request, uri )
 	} )
 
 	mt.render = function( self, template, ... )
-		local fn = flea.templates[ template ]
+		local fn = templates[ template ]
 		local env = setmetatable( { request = self }, {
 			__index = _G,
 			__newindex = _G,
