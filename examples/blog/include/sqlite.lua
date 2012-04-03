@@ -1,10 +1,16 @@
 require( "sqlite3" )
 
+local StatementCache = { }
+
 local function newDB( file )
 	local db = sqlite3.open( file )
-	
+
 	getmetatable( db ).__call = function( self, query, ... )
-		local statement = assert( db:prepare( query ) )
+		if not StatementCache[ query ] then
+			StatementCache[ query ] = assert( db:prepare( query ) )
+		end
+
+		local statement = StatementCache[ query ]
 
 		if ... then
 			statement:bind( ... )
