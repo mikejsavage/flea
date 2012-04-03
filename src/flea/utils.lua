@@ -72,13 +72,6 @@ function math.round( num )
 	return math.floor( num + 0.5 )
 end
 
--- curry( f, x )( ... ) = f( x, ... )
-function curry( f, x )
-	return function( ... )
-		return f( x, ... )
-	end
-end
-
 -- essentially returns a function pointer to f
 function wrap( f )
 	return function( ... )
