@@ -315,7 +315,7 @@ static int request_postData( lua_State* L )
 	return 0;
 }
 
-static int request_addFile( lua_State* L )
+static int request_sendFile( lua_State* L )
 {
 	struct evhttp_request* request = checkRequest( L, 1 );
 	FILE* file = checkFile( L, 2 );
@@ -356,7 +356,7 @@ struct luaL_reg libRequest[] =
 	{ "addHeader", request_addHeader },
 	{ "clearHeaders", request_clearHeaders },
 	{ "postData", request_postData },
-	{ "addFile", request_addFile },
+	{ "sendFile", request_sendFile },
 	{ NULL, NULL },
 };
 

@@ -120,7 +120,7 @@ local function handleRequest( request, uri )
 
 		if file then
 			request:addHeader( "Content-Type", mime.type( staticPath ) )
-			request:addFile( file )
+			request:sendFile( file )
 
 			return 200, "OK"
 		end
