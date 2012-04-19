@@ -4,11 +4,11 @@ local mime = require( "flea.mime" )
 local cookie = require( "flea.cookie" )
 local session = require( "flea.session" )
 
-local function lazyTable( initalise, arr )
+local function lazyTable( init, arr )
 	return setmetatable( { }, {
 		__index = function( _, key )
 			if not arr.keys then
-				arr.keys = initalise()
+				arr.keys = init()
 			end
 
 			return arr.keys[ key ]
@@ -16,7 +16,7 @@ local function lazyTable( initalise, arr )
 
 		__call = function()
 			if not arr.keys then
-				arr.keys = initalise()
+				arr.keys = init()
 			end
 
 			return pairs( arr.keys )
