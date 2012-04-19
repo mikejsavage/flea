@@ -29,7 +29,7 @@ local Routes = { fragments = { }, patterns = { } }
 
 local function containsCaptures( str )
 	for pos in str:gmatch( "()%(" ) do
-		if pos and str:sub( pos - 1, pos - 1 ) ~= "%" then
+		if str:sub( pos - 1, pos - 1 ) ~= "%" then
 			return true
 		end
 	end
