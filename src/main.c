@@ -152,7 +152,7 @@ static int flea_run( lua_State* L )
 	if( sigemptyset( &action.sa_mask ) == -1 || sigaction( SIGPIPE, &action, 0 ) == -1 )
 	{
 		lua_pushliteral( L, "failed to ignore SIGPIPE" );
-		lua_error( L );
+		return lua_error( L );
 	}
 
 	struct event_base* base = event_base_new();
@@ -201,9 +201,8 @@ static int flea_randomBytes( lua_State* L )
 	if( buffer == NULL )
 	{
 		lua_pushliteral( L, "out of memory" );
-		lua_error( L );
 
-		return 1;
+		return lua_error( L );
 	}
 
 	evutil_secure_rng_get_bytes( buffer, bytes );
@@ -298,9 +297,8 @@ static int request_postData( lua_State* L )
 		if( buffer == NULL )
 		{
 			lua_pushliteral( L, "out of memory" );
-			lua_error( L );
 
-			return 0;
+			return lua_error( L );
 		}
 
 		evbuffer_remove( request->input_buffer, buffer, length );
