@@ -80,7 +80,7 @@ local function loadTemplates( path, relPath )
 				if name then
 					local fullName = relPath .. name
 
-					flea.templates[ fullName ] = compileTemplate(
+					Templates[ fullName ] = compileTemplate(
 						io.contents( fullPath ),
 						fullName
 					)
