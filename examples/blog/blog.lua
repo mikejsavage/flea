@@ -1,5 +1,7 @@
 #! /usr/bin/lua
 
+-- depends on http://lua.sqlite.org/
+
 -- this isn't strictly necessary but it lets us run the app from a different dir
 require( "lfs" )
 
@@ -14,7 +16,7 @@ require( "flea" )
 local sqlite = require( "include.sqlite" )
 
 DB = sqlite.new( "data/posts.sq3" )
-DB( "CREATE TABLE IF NOT EXISTS posts ( id INTEGER PRIMARY KEY, title STRING, body STRING, postedAt INTEGER )" )
+DB( "CREATE TABLE IF NOT EXISTS posts ( id INTEGER PRIMARY KEY, title STRING, body STRING, postedAt INTEGER )" )()
 
 flea.route( "", "index" )
 flea.route( "new", "addPost" )

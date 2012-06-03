@@ -11,7 +11,7 @@ return {
 				postedAt = os.time(),
 			}
 
-			DB( "INSERT INTO posts ( title, body, postedAt ) VALUES ( ?, ?, ? )", form.title, form.body, form.postedAt )
+			DB( "INSERT INTO posts ( title, body, postedAt ) VALUES ( ?, ?, ? )", form.title, form.body, form.postedAt )()
 
 			local id = DB( "SELECT id FROM posts WHERE title = ? AND body = ? AND postedAt = ?", form.title, form.body, form.postedAt )()
 

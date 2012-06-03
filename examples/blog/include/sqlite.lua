@@ -1,4 +1,4 @@
-require( "sqlite3" )
+require( "lsqlite3" )
 
 local StatementCache = { }
 
@@ -7,18 +7,20 @@ local function newDB( file )
 
 	getmetatable( db ).__call = function( self, query, ... )
 		if not StatementCache[ query ] then
-			StatementCache[ query ] = assert( db:prepare( query ) )
+			StatementCache[ query ] = assert( ( db:prepare( query ) ), db:errmsg() )
 		end
 
 		local statement = StatementCache[ query ]
 
 		if ... then
-			statement:bind( ... )
+			statement:bind_values( ... )
 		end
 
-		statement:cols()() -- it does not work without this line for whatever reason
+		local iter = statement:urows()
 
-		return statement:cols()
+		return function()
+			return iter( statement )
+		end
 	end
 
 	return db
