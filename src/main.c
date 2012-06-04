@@ -5,8 +5,11 @@
 #include <sys/queue.h>
 #include <sys/stat.h>
 
-#include <event.h>
-#include <evhttp.h>
+#include <event2/event.h>
+#include <event2/event_struct.h>
+#include <event2/buffer.h>
+#include <event2/http.h>
+#include <event2/http_struct.h>
 
 #include <lua.h>
 #include <lualib.h>
