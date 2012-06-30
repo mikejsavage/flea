@@ -37,7 +37,6 @@ build = {
 	install = {
 		lua = {
 			[ "flea" ] = "src/flea.lua",
-			[ "picky" ] = "src/picky.lua",
 			[ "flea.cookie" ] = "src/flea/cookie.lua",
 			[ "flea.errorHandler" ] = "src/flea/errorHandler.lua",
 			[ "flea.handler" ] = "src/flea/handler.lua",
