@@ -13,9 +13,7 @@ return {
 
 			DB( "INSERT INTO posts ( title, body, postedAt ) VALUES ( ?, ?, ? )", form.title, form.body, form.postedAt )()
 
-			local id = DB( "SELECT id FROM posts WHERE title = ? AND body = ? AND postedAt = ?", form.title, form.body, form.postedAt )()
-
-			return request:redirect( "/%d" % id )
+			return request:redirect( "/%d" % DB:last_insert_rowid() )
 		end
 	end,
 }
