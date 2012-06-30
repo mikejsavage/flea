@@ -17,4 +17,3 @@ mt.__newindex = function( self, key, value )
 
 	rawset( self, key, value )
 end
-
