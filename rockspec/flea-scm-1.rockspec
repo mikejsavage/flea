@@ -12,7 +12,7 @@ description = {
 		of Lua by only providing the basics.
 	]],
 	homepage = "http://github.com/mikejsavage/flea",
-	license = "BSD",
+	license = "MIT",
 	maintainer = "Mike Savage",
 }
 
