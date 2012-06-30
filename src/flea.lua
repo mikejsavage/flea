@@ -39,3 +39,4 @@ printf( "http://0.0.0.0:%d/ [%s]",
 
 require( "flea.handler" )
 require( "flea.errorHandler" )
+require( "globals" )
