@@ -6,7 +6,7 @@ local function newDB( file )
 
 	getmetatable( db ).__call = function( self, query, ... )
 		if not statementCache[ query ] then
-			statementCache[ query ] = assert( ( db:prepare( query ) ), db:errmsg() )
+			statementCache[ query ] = assert( ( self:prepare( query ) ), self:errmsg() )
 		end
 
 		local statement = statementCache[ query ]
