@@ -11,6 +11,8 @@ local function newDB( file )
 
 		local statement = statementCache[ query ]
 
+		statement:reset()
+
 		if ... then
 			statement:bind_values( ... )
 		end
