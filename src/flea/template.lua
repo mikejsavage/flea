@@ -78,7 +78,7 @@ local function loadTemplates( path, relPath )
 				local name = file:match( "^(.+)%.flea$" )
 
 				if name then
-					local fullName = relPath .. name
+					local fullName = ( relPath .. name ):gsub( "/", "." )
 
 					Templates[ fullName ] = compileTemplate(
 						io.contents( fullPath ),
