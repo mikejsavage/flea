@@ -60,7 +60,8 @@ end
 
 local EmptySession = serialize( { } )
 local function saveSession( request )
-	local session, id = request.session()
+	local session = request.session()
+	local id = request.getSessionID()
 
 	if not id then
 		return

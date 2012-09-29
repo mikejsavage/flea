@@ -3,6 +3,7 @@ local routes = require( "flea.routes" )
 local mime = require( "flea.mime" )
 local cookie = require( "flea.cookie" )
 local session = require( "flea.session" )
+local events = require( "flea.events" )
 
 local function lazyTable( init, arr )
 	return setmetatable( { }, {
@@ -24,7 +25,7 @@ local function lazyTable( init, arr )
 	} )
 end
 
-local function requestAddMethods( request, uri )
+local function requestAddMethods( request, uri, stateful )
 	local mt = getmetatable( request )
 
 	local get = { }
@@ -71,9 +72,15 @@ local function requestAddMethods( request, uri )
 		end,
 
 		__call = function()
-			return sess.keys, sess.id
+			return sess.keys
 		end,
 	} )
+
+	mt.getSessionID = function()
+		checkSession()
+
+		return sess.id
+	end
 
 	mt.headers = setmetatable( { }, {
 		__index = function( self, key )
@@ -105,9 +112,33 @@ local function requestAddMethods( request, uri )
 
 	mt.setCookie = cookie.set
 
+	mt.page = function()
+		error( "Can't call :page in a stateless handler" )
+	end
+
+	mt.page = function()
+		error( "Can't call :wait in a stateless handler" )
+	end
+
 	if request.method == "head" then
 		mt.method = "get"
 		mt.write = function() end
+	end
+end
+
+local function requestAddStateful( request, states, id )
+	local mt = getmetatable( request )
+
+	mt.page = function( self, code, reason )
+		self:send( code or 200, reason or "OK" )
+
+		return coroutine.yield()
+	end
+
+	mt.wait = function( self, event )
+		events.listen( event, states, id )
+
+		return coroutine.yield()
 	end
 end
 
@@ -128,14 +159,51 @@ local function handleRequest( request, uri )
 		return 404, "Not Found"
 	end
 
-	requestAddMethods( request, uri )
-
-	local handler, args = routes.match( uri.path, request.method )
+	local route, args = routes.match( uri.path )
 	local code, reason = 404, "Not Found"
 	local doRespond = true
 
-	if handler then
-		local newCode, newReason = handler( request, unpack( args ) )
+	if route then
+		requestAddMethods( request, uri, route.stateful )
+
+		local newCode
+		local newReason
+
+		if route.methods[ request.method ] then
+			if route.stateful then
+				local id = request.getSessionID()
+				local states = route.states[ request.method ]
+
+				if not states[ id ] then
+					states[ id ] = coroutine.create( route.methods[ request.method ] )
+				end
+
+				requestAddStateful( request, states, id )
+
+				local ok
+				ok, newCode, newReason = coroutine.resume( states[ id ], request, unpack( args ) )
+
+				if not ok then
+					states[ id ] = nil
+
+					return false, err
+				end
+
+				if coroutine.status( states[ id ] ) == "dead" then
+					states[ id ] = nil
+				else
+					doRespond = false
+				end
+			else
+				-- newCode, newReason = route.methods[ request.method ]( request, unpack( args ) )
+				local ok, err
+				ok, err, newCode, newReason = pcall( route.methods[ request.method ], request, unpack( args ) )
+
+				if not ok then
+					return false, err
+				end
+			end
+		end
 
 		if newCode then
 			assert( newReason, "specified response code but not reason" )
@@ -153,6 +221,9 @@ local function handleRequest( request, uri )
 	end
 
 	return true
+end
+
+local function handleClose()
 end
 
 return {

@@ -1,31 +1,14 @@
--- addRoute( "hello", f )
--- addRoute( "hello/(%s+)", g )
---
--- will produce a routes table like
---
--- Routes = {
--- 	fragments = {
--- 		hello = {
--- 			handler = f
--- 			fragments = { }
--- 			patterns = {
--- 				{
--- 					pattern = "(%s+)"
--- 					handler = g
--- 					fragments = { }
--- 					patterns = { }
--- 				}
--- 			}
--- 		}
--- 	}
--- 	patterns = { }
--- }
---
--- this may be overengineered but it does make handler lookups SILLY fast
-
 local HandlersDir = "pages"
+local AllMethods = {
+	get = true,
+	head = true,
+	post = true,
+	put = true,
+	delete = true,
+}
 
 local Routes = { fragments = { }, patterns = { } }
+local NamedRoutes = { }
 
 local function containsCaptures( str )
 	for pos in str:gmatch( "()%(" ) do
@@ -50,7 +33,13 @@ local function escapeNonCaptures( str )
 	return str:sub( 1, -3 )
 end
 
-local function addRoute( uri, handler )
+local function patternToFormat( str )
+	return str:gsub( "%b()", "%%s" )
+end
+
+local function addRoute( uri, methods, options )
+	options = options or { }
+
 	local route = Routes
 
 	for fragment in uri:gmatch( "[^/]+" ) do
@@ -76,10 +65,28 @@ local function addRoute( uri, handler )
 		end
 	end
 
-	route.handler = handler
+	route.uri = uri
+	route.methods = methods
+	route.pre = options.pre
+	route.post = options.post
+	route.stateful = options.stateful
+
+	if options.stateful then
+		route.states = { }
+
+		for method in pairs( flea.production and methods or AllMethods ) do
+			route.states[ method ] = { }
+		end
+	end
+
+	if options.name then
+		assert( not NamedRoutes[ options.name ], "already a route named `%s'" % options.name )
+
+		NamedRoutes[ options.name ] = patternToFormat( uri )
+	end
 end
 
-local function matchRoute( uri, method )
+local function matchRoute( uri )
 	local route = Routes
 	local args = { }
 
@@ -110,17 +117,25 @@ local function matchRoute( uri, method )
 		end
 	end
 
-	return route.handler[ method ], args
+	return route, args
 end
 
-function flea.route( uri, handler )
-	assert( type( "uri" ) == "string", "first argument `uri' must be a string" )
-	assert( type( "handler" ) == "string", "second argument `handler' must be a string" )
+function flea.route( uri, handler, options )
+	enforce( uri, "uri", "string" )
+	enforce( handler, "handler", "string" )
+	enforce( options, "options", "table", "nil" )
+
+	if options then
+		enforce( options.name, "options.name", "string", "nil" )
+		enforce( options.pre, "options.pre", "function", "nil" )
+		enforce( options.post, "options.post", "function", "nil" )
+		enforce( options.stateful, "options.stateful", "boolean", "nil" )
+	end
 
 	local handlerPath = "%s/%s.lua" % { HandlersDir, handler }
 
 	if flea.production then
-		addRoute( uri, assert( dofile( handlerPath ) ) )
+		addRoute( uri, assert( dofile( handlerPath ) ), options )
 	else
 		addRoute( uri, setmetatable( { }, {
 			__index = function( self, method )
@@ -134,8 +149,33 @@ function flea.route( uri, handler )
 					return nil
 				end
 			end,
-		} ) )
+		} ), options )
 	end
+end
+
+function flea.routes( routes, options )
+	enforce( routes, "routes", "table" )
+	enforce( options, "options", "table" )
+
+	if options then
+		enforce( options.pre, "options.pre", "function", "nil" )
+		enforce( options.post, "options.post", "function", "nil" )
+		enforce( options.stateful, "options.stateful", "boolean", "nil" )
+	end
+
+	for _, route in ipairs( routes ) do
+		local routeOptions = setmetatable( route, { __index = options } )
+
+		flea.route( route.uri, route.handler, routeOptions )
+	end
+end
+
+function flea.url( route, ... )
+	enforce( route, "route", "string" )
+
+	assert( NamedRoutes[ route ], "no route named `%s'" % route )
+
+	return NamedRoutes[ name ]:format( ... )
 end
 
 return {
