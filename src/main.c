@@ -17,8 +17,8 @@
 
 typedef enum { false, true } bool;
 
-static int handlerIdx = -1;
-static int errorHandlerIdx;
+static int handlerIdx = LUA_NOREF;
+static int closeHandlerIdx = LUA_NOREF;
 static int port;
 
 #define lua_setkey( L, k, v ) lua_pushliteral( L, k ); \
@@ -90,7 +90,8 @@ const char* methodString( enum evhttp_cmd_type type )
 
 void handler( struct evhttp_request* request, void* arg )
 {
-	assert( handlerIdx != -1 );
+	assert( handlerIdx != LUA_NOREF );
+	assert( closeHandlerIdx != LUA_NOREF );
 
 	lua_State* L = ( lua_State* ) arg;
 
@@ -108,36 +109,8 @@ void handler( struct evhttp_request* request, void* arg )
 	struct evhttp_uri* uri = evhttp_uri_parse( request->uri );
 	pushUri( L, uri );
 
-	if( lua_pcall( L, 2, 2, 0 ) != 0 )
-	{
-		const char* error = lua_tostring( L, -1 );
-		lua_pop( L, 1 );
+	lua_call( L, 2, 0 );
 
-		lua_rawgeti( L, LUA_REGISTRYINDEX, errorHandlerIdx );
-
-		flea = ( struct evhttp_request** ) lua_newuserdata( L, sizeof( struct evhttp_request* ) );
-		*flea = request;
-		luaL_getmetatable( L, "Flea.request" );
-		lua_setmetatable( L, -2 );
-
-		lua_pushstring( L, error );
-		lua_pushstring( L, request->uri );
-
-		lua_call( L, 3, 0 );
-
-		evhttp_send_reply( request, HTTP_INTERNAL, "Internal Server Error", NULL );
-
-		goto cleanup;
-	}
-
-	int code = lua_tonumber( L, -2 );
-	const char* reason = lua_tostring( L, -1 );
-
-	evhttp_send_reply( request, code, reason, NULL );
-
-	lua_pop( L, 2 );
-
-cleanup:
 	evhttp_uri_free( uri );
 
 	assert( lua_gettop( L ) == 0 );
@@ -155,6 +128,7 @@ static int flea_run( lua_State* L )
 	if( sigemptyset( &action.sa_mask ) == -1 || sigaction( SIGPIPE, &action, 0 ) == -1 )
 	{
 		lua_pushliteral( L, "failed to ignore SIGPIPE" );
+
 		return lua_error( L );
 	}
 
@@ -168,15 +142,6 @@ static int flea_run( lua_State* L )
 
 	evhttp_free( httpd );
 	event_base_free( base );
-
-	return 0;
-}
-
-static int flea_setErrorHandler( lua_State* L )
-{
-	luaL_argcheck( L, lua_type( L, 1 ) == LUA_TFUNCTION, 1, "expected function" );
-
-	errorHandlerIdx = luaL_ref( L, LUA_REGISTRYINDEX );
 
 	return 0;
 }
@@ -331,10 +296,23 @@ static int request_sendFile( lua_State* L )
 	return 0;
 }
 
-static int init_setHandler( lua_State* L )
+static int request_send( lua_State* L )
+{
+	struct evhttp_request* request = checkRequest( L, 1 );
+	int code = luaL_checkinteger( L, 2 );
+	const char* reason = luaL_checkstring( L, 3 );
+
+	evhttp_send_reply( request, code, reason, NULL );
+
+	return 0;
+}
+
+static int init_setHandlers( lua_State* L )
 {
 	luaL_argcheck( L, lua_type( L, 1 ) == LUA_TFUNCTION, 1, "expected function" );
+	luaL_argcheck( L, lua_type( L, 2 ) == LUA_TFUNCTION, 2, "expected function" );
 
+	closeHandlerIdx = luaL_ref( L, LUA_REGISTRYINDEX );
 	handlerIdx = luaL_ref( L, LUA_REGISTRYINDEX );
 
 	return 0;
@@ -343,7 +321,6 @@ static int init_setHandler( lua_State* L )
 struct luaL_reg libFlea[] =
 {
 	{ "run", flea_run },
-	{ "setErrorHandler", flea_setErrorHandler },
 	{ "parseQuery", flea_parseQuery },
 	{ "randomBytes", flea_randomBytes },
 	{ NULL, NULL },
@@ -358,6 +335,7 @@ struct luaL_reg libRequest[] =
 	{ "clearHeaders", request_clearHeaders },
 	{ "postData", request_postData },
 	{ "sendFile", request_sendFile },
+	{ "send", request_send },
 	{ NULL, NULL },
 };
 
@@ -376,7 +354,7 @@ LUALIB_API int luaopen_libflea( lua_State* L )
 	lua_settable( L, -3 );
 	luaL_openlib( L, NULL, libRequest, 0 );
 
-	lua_pushcfunction( L, init_setHandler );
+	lua_pushcfunction( L, init_setHandlers );
 
 	return 1;
 }

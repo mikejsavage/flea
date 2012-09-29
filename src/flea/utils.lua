@@ -78,3 +78,20 @@ function wrap( f )
 		return f( ... )
 	end
 end
+
+function enforce( var, name, ... )
+	local acceptable = { ... }
+	local ok = false
+
+	for _, accept in ipairs( acceptable ) do
+		if type( var ) == accept then
+			ok = true
+
+			break
+		end
+	end
+
+	if not ok then
+		error( "argument `%s' to %s should be of type %s (got %s)" % { name, debug.getinfo( 2, "n" ).name, table.concat( acceptable, " or " ), type( var ) }, 3 )
+	end
+end

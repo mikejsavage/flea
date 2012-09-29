@@ -132,6 +132,7 @@ local function handleRequest( request, uri )
 
 	local handler, args = routes.match( uri.path, request.method )
 	local code, reason = 404, "Not Found"
+	local doRespond = true
 
 	if handler then
 		local newCode, newReason = handler( request, unpack( args ) )
@@ -146,9 +147,15 @@ local function handleRequest( request, uri )
 
 		session.save( request )
 	end
-	
-	return code, reason
+
+	if doRespond then
+		request:send( code, reason )
+	end
+
+	return true
 end
 
-setHandler( handleRequest )
-setHandler = nil -- don't pollute _G XXX: this is ugly
+return {
+	request = handleRequest,
+	close = handleClose,
+}
