@@ -88,6 +88,32 @@ const char* methodString( enum evhttp_cmd_type type )
 	}
 }
 
+typedef struct
+{
+	lua_State* L;
+	struct evhttp_request* request;
+} StateRequest;
+
+void closeHandler( struct evhttp_connection* connection, void* arg )
+{
+	PRETEND_TO_USE( connection );
+	PRETEND_TO_USE( arg );
+	printf( "implement closeHandler...\n" );
+// 
+// 	StateRequest* sr = ( StateRequest* ) arg;
+// 
+// 	lua_rawgeti( sr->L, LUA_REGISTRYINDEX, closeHandlerIdx );
+// 
+// 	struct evhttp_request** flea = ( struct evhttp_request** ) lua_newuserdata( sr->L, sizeof( struct evhttp_request* ) );
+// 	*flea = sr->request;
+// 
+// 	luaL_getmetatable( sr->L, "Flea.request" );
+// 
+// 	lua_call( sr->L, 1, 0 );
+// 
+// 	assert( lua_gettop( sr->L ) == 0 );
+}
+
 void handler( struct evhttp_request* request, void* arg )
 {
 	assert( handlerIdx != LUA_NOREF );
@@ -108,6 +134,14 @@ void handler( struct evhttp_request* request, void* arg )
 
 	struct evhttp_uri* uri = evhttp_uri_parse( request->uri );
 	pushUri( L, uri );
+
+	StateRequest sr =
+	{
+		.L = L,
+		.request = request,
+	};
+
+	evhttp_connection_set_closecb( request->evcon, closeHandler, &sr );
 
 	lua_call( L, 2, 0 );
 
