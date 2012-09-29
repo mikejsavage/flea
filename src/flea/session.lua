@@ -46,9 +46,8 @@ end
 
 local function getSession( request )
 	local id = request.cookies.sessionID
-	local session = loadSession( id )
 
-	if not session then
+	if not id then
 		local newID = newSessionID()
 
 		request:setCookie( "sessionID", newID, { httponly = true } )
@@ -56,7 +55,7 @@ local function getSession( request )
 		return { }, newID
 	end
 
-	return session, id
+	return ( loadSession( id ) or { } ), id
 end
 
 local EmptySession = serialize( { } )
