@@ -3,8 +3,9 @@ local function parseCookies( cookieString )
 		return { }
 	end
 
-	local cookies = { }
 	cookieString = cookieString .. ";"
+
+	local cookies = { }
 
 	for key, value in cookieString:gmatch( "%s*(.-)=(.-)%s*;" ) do
 		cookies[ key ] = value
