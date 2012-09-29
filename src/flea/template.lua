@@ -55,7 +55,9 @@ local function compileTemplate( template, name )
 		if action then
 			table.insert( code, action( block:sub( 3, -3 ) ) )
 		else
-			assert( block == "{}", "bad block in template %s: %s" % { name, block } )
+			if block ~= "{}" then
+				table.insert( code, "request:write( %q )" % block )
+			end
 		end
 	end
 
