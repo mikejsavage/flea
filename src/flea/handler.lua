@@ -153,10 +153,14 @@ local function handleRequest( request, uri )
 			request:addHeader( "Content-Type", mime.type( staticPath ) )
 			request:sendFile( file )
 
-			return 200, "OK"
+			request:send( 200, "OK" )
+
+			return true
 		end
 
-		return 404, "Not Found"
+		request:send( 404, "Not Found" )
+
+		return true
 	end
 
 	local route, args = routes.match( uri.path )
