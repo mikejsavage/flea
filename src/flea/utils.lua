@@ -24,6 +24,10 @@ function string.htmlDecode( self )
 	end ):gsub( "\r\n", "\n" )
 end
 
+function string.trim( self )
+	return self:match( "^%s*(.-)%s*$" )
+end
+
 function math.commas( num )
 	num = tonumber( num )
 
