@@ -41,7 +41,7 @@ local function compileTemplate( template, name )
 	-- chopped by the gmatch
 	template = "\n" .. template .. "{}"
 
-	template = template:gsub( "\n%%\n", "\n" ):gsub( "\n[\t ]*(%%[^}][^\n]*)", "\n{%1%%}" ):sub( 2 )
+	template = template:gsub( "\n%%\n", "\n" ):gsub( "\n[\t ]*(%%[^}][^\n]*)", "{%1%%}" )
 
 	local code = { }
 
