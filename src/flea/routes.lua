@@ -37,7 +37,7 @@ local function patternToFormat( str )
 	return str:gsub( "%b()", "%%s" )
 end
 
-local function addRoute( uri, methods, options )
+local function addRoute( uri, name, methods, options )
 	options = options or { }
 
 	local route = Routes
@@ -79,11 +79,7 @@ local function addRoute( uri, methods, options )
 		end
 	end
 
-	if options.name then
-		assert( not NamedRoutes[ options.name ], "already a route named `%s'" % options.name )
-
-		NamedRoutes[ options.name ] = patternToFormat( uri )
-	end
+	NamedRoutes[ name ] = patternToFormat( uri )
 end
 
 local function matchRoute( uri )
@@ -126,18 +122,17 @@ function flea.route( uri, handler, options )
 	enforce( options, "options", "table", "nil" )
 
 	if options then
-		enforce( options.name, "options.name", "string", "nil" )
 		enforce( options.pre, "options.pre", "function", "nil" )
 		enforce( options.post, "options.post", "function", "nil" )
 		enforce( options.stateful, "options.stateful", "boolean", "nil" )
 	end
 
-	local handlerPath = "%s/%s.lua" % { HandlersDir, handler }
+	local handlerPath = "%s/%s.lua" % { HandlersDir, handler:gsub( "%.", "/" ) }
 
 	if flea.production then
-		addRoute( uri, assert( dofile( handlerPath ) ), options )
+		addRoute( uri, handler, assert( dofile( handlerPath ) ), options )
 	else
-		addRoute( uri, setmetatable( { }, {
+		addRoute( uri, handler, setmetatable( { }, {
 			__index = function( self, method )
 				local script = assert( dofile( handlerPath ) )
 
