@@ -80,7 +80,7 @@ local function loadTemplates( path, relPath )
 				local name = file:match( "^(.+)%.flea$" )
 
 				if name then
-					local fullName = ( relPath .. name ):gsub( "/", "." )
+					local fullName = ( relPath .. name ):gsub( "%.", "/" )
 
 					Templates[ fullName ] = compileTemplate(
 						io.contents( fullPath ),
@@ -109,7 +109,7 @@ else
 		__index = function( self, name )
 			assert( type( name ) == "string", "template name must be a string" )
 
-			local path = "%s/%s.flea" % { TemplatesDir, name }
+			local path = "%s/%s.flea" % { TemplatesDir, name:gsub( "%.", "/" ) }
 
 			local readable, err = io.readable( path )
 			assert( readable, "could not open template `%s`: %s" % { name, err or "" } )
