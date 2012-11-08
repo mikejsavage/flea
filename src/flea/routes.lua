@@ -170,7 +170,7 @@ function flea.url( route, ... )
 
 	assert( NamedRoutes[ route ], "no route named `%s'" % route )
 
-	return NamedRoutes[ name ]:format( ... )
+	return "/" .. NamedRoutes[ route ]:format( ... )
 end
 
 return {
