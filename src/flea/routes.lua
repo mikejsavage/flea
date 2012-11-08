@@ -48,6 +48,7 @@ local function addRoute( uri, name, methods, options )
 				pattern = "^%s$" % escapeNonCaptures( fragment ),
 				fragments = { },
 				patterns = { },
+				methods = { },
 			} )
 
 			route = route.patterns[ #route.patterns ]
@@ -58,6 +59,7 @@ local function addRoute( uri, name, methods, options )
 				route.fragments[ fragment ] = {
 					fragments = { },
 					patterns = { },
+					methods = { },
 				}
 			end
 
