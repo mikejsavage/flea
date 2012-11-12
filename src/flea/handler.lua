@@ -4,6 +4,7 @@ local mime = require( "flea.mime" )
 local cookie = require( "flea.cookie" )
 local session = require( "flea.session" )
 local events = require( "flea.events" )
+local json = require( "flea.json" )
 
 local function lazyTable( init, arr )
 	return setmetatable( { }, {
@@ -123,7 +124,18 @@ local function requestAddMethods( request, uri, stateful )
 	if request.method == "head" then
 		mt.method = "get"
 		mt.write = function() end
+	elseif request.method == "post" and mt.headers[ "Content-Type" ] == "application/json" then
+		mt.method = "json"
+
+		local err
+		mt.data, err = json.decode( request:postData() )
+
+		if not mt.data then
+			return false, err
+		end
 	end
+
+	return true
 end
 
 local function requestAddStateful( request, states, id )
@@ -168,12 +180,17 @@ local function handleRequest( request, uri )
 	local doRespond = true
 
 	if route then
-		requestAddMethods( request, uri, route.stateful )
-
 		local newCode
 		local newReason
 
-		if route.methods[ request.method ] then
+		local ok, err = requestAddMethods( request, uri, route.stateful )
+
+		if not ok then
+			newCode = 400
+			newReason = "Malformed Request"
+
+			request:write( err )
+		elseif route.methods[ request.method ] then
 			if route.stateful then
 				local id = request.getSessionID()
 				local states = route.states[ request.method ]

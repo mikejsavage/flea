@@ -5,6 +5,7 @@ local AllMethods = {
 	post = true,
 	put = true,
 	delete = true,
+	json = true,
 }
 
 local Routes = { fragments = { }, patterns = { } }
