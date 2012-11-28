@@ -186,11 +186,10 @@ local function handleRequest( request, uri )
 		local ok, err = requestAddMethods( request, uri, route.stateful )
 
 		if not ok then
-			newCode = 400
-			newReason = "Malformed Request"
+			return false, err
+		end
 
-			request:write( err )
-		elseif route.methods[ request.method ] then
+		if route.methods[ request.method ] then
 			if route.stateful then
 				local id = request.getSessionID()
 				local states = route.states[ request.method ]
