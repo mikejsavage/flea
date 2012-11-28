@@ -8,7 +8,7 @@ local json = require( "flea.json" )
 
 local function lazyTable( init, arr )
 	return setmetatable( { }, {
-		__index = function( _, key )
+		__index = function( self, key )
 			if not arr.keys then
 				arr.keys = init()
 			end
@@ -60,13 +60,13 @@ local function requestAddMethods( request, uri, stateful )
 	mt.cookies = lazyTable( initCookies, cookies )
 
 	mt.session = setmetatable( { }, {
-		__index = function( _, key )
+		__index = function( self, key )
 			checkSession()
 
 			return sess.keys[ key ]
 		end,
 
-		__newindex = function( _, key, value )
+		__newindex = function( self, key, value )
 			checkSession()
 
 			sess.keys[ key ] = value
