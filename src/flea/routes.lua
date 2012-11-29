@@ -137,11 +137,19 @@ function flea.route( uri, handler, options )
 	else
 		addRoute( uri, handler, setmetatable( { }, {
 			__index = function( self, method )
-				local script = assert( dofile( handlerPath ) )
+				local script, err = loadfile( handlerPath )
 
-				if script[ method ] then
+				if not script then
+					return function( request )
+						request:write( err )
+					end
+				end
+
+				local methods = script()
+
+				if methods[ method ] then
 					return function( ... )
-						return script[ method ]( ... )
+						return methods[ method ]( ... )
 					end
 				else
 					return nil
