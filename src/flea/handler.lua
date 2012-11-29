@@ -159,6 +159,12 @@ local function handleRequest( request, uri )
 	local staticPath = uri.path:match( "^/(static/.+)" )
 
 	if staticPath then
+		if staticPath:match( "%.%." ) then
+			request:send( 403, "Forbidden" )
+
+			return true
+		end
+
 		local file = io.open( staticPath )
 
 		if file then
@@ -215,7 +221,6 @@ local function handleRequest( request, uri )
 					doRespond = false
 				end
 			else
-				-- newCode, newReason = route.methods[ request.method ]( request, unpack( args ) )
 				local ok, err
 				ok, err, newCode, newReason = pcall( route.methods[ request.method ], request, unpack( args ) )
 
