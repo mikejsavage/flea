@@ -1,36 +1,12 @@
-flea
-====
+Status
+======
 
-A minimal web framework for a minimal language.
-
-
-Hello world!
------------
-
-Mandatory hello world example:
-
-app.lua
-
-	require( "flea" )
-
-	flea.route( "(.*)", "index" )
-	flea.run()
-
-pages/index.lua
-
-	return {
-		get = function( request, name )
-			if name == "" then
-				name = "world"
-			end
-
-			request:write( "Hello %s! % name )
-		end,
-	}
+It works but a lot of things are missing.
 
 
 Requirements
 ------------
 
-lua 5.1
+lua 5.1 (this is going to change to lua 5.2)
+lua-cjson
 libevent 2
