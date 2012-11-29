@@ -156,7 +156,7 @@ end
 
 local function handleRequest( request, uri )
 	-- try to serve static file first
-	local staticPath = uri.path:match( "^/(static/.*)" )
+	local staticPath = uri.path:match( "^/(static/.+)" )
 
 	if staticPath then
 		local file = io.open( staticPath )
