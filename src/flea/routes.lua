@@ -1,17 +1,8 @@
-local HandlersDir = "pages"
-local AllMethods = {
-	get = true,
-	head = true,
-	post = true,
-	put = true,
-	delete = true,
-	json = true,
-}
+local _M = { methods = { } }
 
-local Routes = { fragments = { }, patterns = { } }
-local NamedRoutes = { }
+local routes = { fragments = { }, patterns = { }, methods = { }, allow = "" }
 
-local function containsCaptures( str )
+local function contains_captures( str )
 	for pos in str:gmatch( "()%(" ) do
 		if str:sub( pos - 1, pos - 1 ) ~= "%" then
 			return true
@@ -24,7 +15,7 @@ end
 -- escapes special characters outside captures
 -- eg escapeNonCaptures( "+(%a+)" ) = "%+(%a+)"
 -- this is likely to break if the captures contain %)
-local function escapeNonCaptures( str )
+local function escape_non_captures( str )
 	str = str .. "()"
 
 	str = str:gsub( "(.-)(%b())", function( text, capture )
@@ -34,25 +25,36 @@ local function escapeNonCaptures( str )
 	return str:sub( 1, -3 )
 end
 
-local function patternToFormat( str )
+local function pattern_to_format_string( str )
 	return str:gsub( "%b()", "%%s" )
 end
 
-local function addRoute( uri, name, methods, options )
-	options = options or { }
+local function add_route( method, url, callback )
+	local route = routes
 
-	local route = Routes
+	for fragment in url:gmatch( "[^/]+" ) do
+		if contains_captures( fragment ) then
+			local pattern = "^" .. escape_non_captures( fragment ) .. "$"
+			local found = false
 
-	for fragment in uri:gmatch( "[^/]+" ) do
-		if containsCaptures( fragment ) then
-			table.insert( route.patterns, {
-				pattern = "^%s$" % escapeNonCaptures( fragment ),
-				fragments = { },
-				patterns = { },
-				methods = { },
-			} )
+			for _, existing in ipairs( route.patterns ) do
+				if existing.pattern == pattern then
+					route = existing
+					found = true
+				end
+			end
 
-			route = route.patterns[ #route.patterns ]
+			if not found then
+				local child = {
+					pattern = "^" .. escape_non_captures( fragment ) .. "$",
+					fragments = { },
+					patterns = { },
+					allow = "",
+				}
+
+				table.insert( route.patterns, child )
+				route = child
+			end
 		else
 			fragment = fragment:gsub( "%%%(", "(" )
 
@@ -60,7 +62,7 @@ local function addRoute( uri, name, methods, options )
 				route.fragments[ fragment ] = {
 					fragments = { },
 					patterns = { },
-					methods = { },
+					allow = "",
 				}
 			end
 
@@ -68,28 +70,19 @@ local function addRoute( uri, name, methods, options )
 		end
 	end
 
-	route.uri = uri
-	route.methods = methods
-	route.pre = options.pre
-	route.post = options.post
-	route.stateful = options.stateful
-
-	if options.stateful then
-		route.states = { }
-
-		for method in pairs( flea.production and methods or AllMethods ) do
-			route.states[ method ] = { }
-		end
+	if not route.methods then
+		route.methods = { }
 	end
 
-	NamedRoutes[ name ] = patternToFormat( uri )
+	route.methods[ method ] = callback
+	route.allow = route.allow .. " " .. method:upper()
 end
 
-local function matchRoute( uri )
-	local route = Routes
+function _M.match( url )
+	local route = routes
 	local args = { }
 
-	for fragment in uri:gmatch( "[^/]+" ) do
+	for fragment in url:gmatch( "[^/]+" ) do
 		if route.fragments[ fragment ] then
 			route = route.fragments[ fragment ]
 		else
@@ -111,7 +104,7 @@ local function matchRoute( uri )
 			end
 
 			if not found then
-				return nil
+				return
 			end
 		end
 	end
@@ -119,71 +112,11 @@ local function matchRoute( uri )
 	return route, args
 end
 
-function flea.route( uri, handler, options )
-	enforce( uri, "uri", "string" )
-	enforce( handler, "handler", "string" )
-	enforce( options, "options", "table", "nil" )
-
-	if options then
-		enforce( options.pre, "options.pre", "function", "nil" )
-		enforce( options.post, "options.post", "function", "nil" )
-		enforce( options.stateful, "options.stateful", "boolean", "nil" )
-	end
-
-	local handlerPath = "%s/%s.lua" % { HandlersDir, handler:gsub( "%.", "/" ) }
-
-	if flea.production then
-		addRoute( uri, handler, assert( dofile( handlerPath ) ), options )
-	else
-		addRoute( uri, handler, setmetatable( { }, {
-			__index = function( self, method )
-				local script, err = loadfile( handlerPath )
-
-				if not script then
-					return function( request )
-						request:write( err )
-					end
-				end
-
-				local methods = script()
-
-				if methods[ method ] then
-					return function( ... )
-						return methods[ method ]( ... )
-					end
-				else
-					return nil
-				end
-			end,
-		} ), options )
+local methods = { "get", "post", "put", "delete" }
+for _, method in ipairs( methods ) do
+	_M.methods[ method ] = function( url, handler )
+		add_route( method, url, handler )
 	end
 end
 
-function flea.routes( routes, options )
-	enforce( routes, "routes", "table" )
-	enforce( options, "options", "table" )
-
-	if options then
-		enforce( options.pre, "options.pre", "function", "nil" )
-		enforce( options.post, "options.post", "function", "nil" )
-		enforce( options.stateful, "options.stateful", "boolean", "nil" )
-	end
-
-	for _, route in ipairs( routes ) do
-		local routeOptions = setmetatable( route, { __index = options } )
-
-		flea.route( route.uri, route.handler, routeOptions )
-	end
-end
-
-function flea.url( route, ... )
-	enforce( route, "route", "string" )
-
-	assert( NamedRoutes[ route ], "no route named `%s'" % route )
-
-	return "/" .. NamedRoutes[ route ]:format( ... )
-end
-
-return {
-	match = matchRoute,
-}
+return _M

@@ -1,122 +1,82 @@
--- pretty much Zed Shaw's view.lua from Tir
--- http://tir.mongrel2.org/
+local arc4 = require( "arc4random" )
 
-local TemplatesDir = "templates"
+local _M = { }
 
-local Templates
+-- http://www.w3.org/html/wg/drafts/html/master/syntax.html#void-elements
+-- local voids = { "area", "base", "br", "col", "embed", "hr", "img", "input", "keygen", "link", "menuitem", "meta", "param", "source", "track", "wbr", }
+--
+-- for _, void in ipairs( voids ) do
+-- 	voids[ void ] = true
+-- end
 
-local Actions = {
-	-- run code
-	[ "{%" ] = function( block )
-		return block
-	end,
+local bless_key
 
-	-- run code and print return value
-	-- will print nothing if equates to false
-	[ "{{" ] = function( str )
-		assert( loadstring( "return " .. str ) )
+local function flatten_contents( contents, flat )
+	if type( contents ) == "string" then
+		table.insert( flat, contents:html_escape() )
+	elseif type( contents ) == "function" then
+		local chunks = { }
 
-		return "if %s then request:write( %s ) end" % { str, str }
-	end,
+		contents( function( chunk )
+			table.insert( chunks, chunk )
+		end )
 
-	-- same as above but make it html safe
-	[ "{<" ] = function( str )
-		return "if %s then request:write( ( %s ):htmlEscape():htmlDecode() ) end" % { str, str }
-	end,
+		flatten_contents( chunks, flat )
+	elseif contents.blessing then
+		assert( contents.blessing == bless_key, "unblessed html fragment" )
+		table.insert( flat, contents[ 1 ] )
+	else
+		for i = 1, #contents do
+			flatten_contents( contents[ i ], flat )
+		end
+	end
+end
 
-	-- load template
-	[ "{(" ] = function( str )
-		return "request:render( %s )" % str
-	end,
+local mt = {
+	__index = function( _, key )
+		key = key:lower()
 
-	-- comment
-	[ "{-" ] = function()
-		return nil
-	end,
+		return function( attr_or_contents, contents )
+			local attr = { }
+			if not attr_or_contents or type( attr_or_contents ) == "string" or attr_or_contents[ 1 ] then
+				contents = attr_or_contents
+			else
+				attr = attr_or_contents
+			end
+
+			local result = "<" .. key
+
+			for k, v in pairs( attr ) do
+				result = result .. " " .. k .. "=\"" .. tostring( v ):url_escape() .. "\""
+			end
+
+			result = result .. ">"
+
+			if contents then
+				local flat = { }
+				flatten_contents( contents, flat )
+
+				return { result .. table.concat( flat ) .. "</" .. key .. ">", blessing = bless_key }
+			end
+
+			return { result, blessing = bless_key }
+		end
+	end
 }
 
-local function compileTemplate( template, name )
-	-- prepend \n for the gsub in a few lines
-	-- append a {} so the last bit of text isn't
-	-- chopped by the gmatch
-	template = "\n" .. template .. "{}"
+local html = setmetatable( {
+	bless = function( contents )
+		return { contents, blessing = bless_key }
+	end,
+}, mt )
 
-	template = template:gsub( "\n%%\n", "\n" ):gsub( "\n[\t ]*(%%[^}][^\n]*)", "{%1%%}" )
+function _M.render( f )
+	bless_key = arc4.random( 2^32 - 1 )
+	local rendered = f( html )
 
-	local code = { }
+	assert( rendered.blessing == bless_key, "unblessed html fragment" )
 
-	for text, block in template:gmatch( "([^{]-)(%b{})" ) do
-		if text ~= "" then
-			table.insert( code, "request:write( %q )" % text )
-		end
-
-		local action = Actions[ block:sub( 1, 2 ) ]
-
-		if action then
-			table.insert( code, action( block:sub( 3, -3 ) ) )
-		else
-			if block ~= "{}" then
-				table.insert( code, "request:write( %q )" % block )
-			end
-		end
-	end
-
-	code = table.concat( code, "\n" )
-
-	local func = assert( loadstring( code, name ) )
-
-	return func
+	return rendered[ 1 ]
 end
 
-local function loadTemplates( path, relPath )
-	for file in lfs.dir( path ) do
-		if file ~= "." and file ~= ".." then
-			local fullPath = "%s/%s" % { path, file }
-			local attr = lfs.attributes( fullPath )
-
-			if attr.mode == "directory" then
-				loadTemplates( fullPath, relPath .. file .. "/" )
-			else
-				local name = file:match( "^(.+)%.flea$" )
-
-				if name then
-					local fullName = ( relPath .. name ):gsub( "/", "." )
-
-					Templates[ fullName ] = compileTemplate(
-						io.contents( fullPath ),
-						fullName
-					)
-				else
-					printf( "non-template in templates dir: %s", file )
-				end
-			end
-		end
-	end
-end
-
-if flea.production then
-	Templates = setmetatable( { }, {
-		__index = function( self, name )
-			assert( nil, "no such template: %s" % name )
-		end,
-	} )
-
-	if io.readable( TemplatesDir ) then
-		loadTemplates( TemplatesDir, "" )
-	end
-else
-	Templates = setmetatable( { }, {
-		__index = function( self, name )
-			assert( type( name ) == "string", "template name must be a string" )
-
-			local path = "%s/%s.flea" % { TemplatesDir, name:gsub( "%.", "/" ) }
-
-			local readable, err = io.readable( path )
-			assert( readable, "could not open template `%s`: %s" % { name, err or "" } )
-
-			return compileTemplate( io.contents( path ), name )
-		end,
-	} )
-end
-
-return Templates
+return _M

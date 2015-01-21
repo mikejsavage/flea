@@ -1,8 +1,0 @@
-<form method="post">
-	Title: <input type="text" name="title"><br>
-
-	Post: <br>
-	<textarea name="body"></textarea><br>
-
-	<input type="submit" name="submitPost" value="Post">
-</form>

@@ -1,8 +1,0 @@
-% local id, title, body, postedAt = ...
-
-<h2>
-	<a href="{{ id }}">{< title >}</a>
-	{{ os.date( "%H:%M %d %b", postedAt )}}
-</h2>
-
-{{ body:htmlEscape():gsub( "\n", "<br>" ) }}
