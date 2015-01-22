@@ -5,7 +5,7 @@ local DB = { }
 
 local function stmtIter( db, query, ... )
 	local stmt = db:prepare( query )
-	assert( stmt, db:errmsg() )
+	assert( stmt, query .. ": " .. db:errmsg() )
 
 	_M.assert( self, stmt:bind_values( ... ) )
 
@@ -18,7 +18,7 @@ end
 
 function DB:run( query, ... )
 	local stmt = self:prepare( query )
-	assert( stmt, self:errmsg() )
+	assert( stmt, query .. ": " .. self:errmsg() )
 
 	assert( stmt:bind_values( ... ) == sqlite3.OK )
 
