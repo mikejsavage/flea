@@ -6,7 +6,7 @@ local _M = { }
 
 function _M.token( request, html )
 	local token = request.cookies.csrf or arc4.buf( 16 ):tohex()
-	request:set_cookie( "csrf", token, time.hours( 2 ) )
+	request:set_cookie( "csrf", token, time.hours( 2 ), { path = "/" } )
 
 	return html.input( { name = "csrf", type = "hidden", value = token } )
 end
