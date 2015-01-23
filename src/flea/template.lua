@@ -32,35 +32,63 @@ local function flatten_contents( contents, flat )
 	end
 end
 
+local function build_element( element, selector, attr_or_contents, maybe_contents )
+	local attr = { }
+	local contents
+
+	if not attr_or_contents or type( attr_or_contents ) == "string" or attr_or_contents[ 1 ] then
+		contents = attr_or_contents
+	else
+		attr = attr_or_contents
+		contents = maybe_contents
+	end
+
+	local classes = { }
+	for class in selector:gmatch( "%.(%a[%w%-_]*)" ) do
+		table.insert( classes, class )
+	end
+
+	attr.id = selector:match( "#(%a[%w%-_]*)$" )
+
+	if #classes ~= 0 then
+		attr.class = table.concat( classes, " " )
+	end
+
+	local result = "<" .. element
+
+	for k, v in pairs( attr ) do
+		result = result .. " " .. k .. "=\"" .. tostring( v ):url_escape() .. "\""
+	end
+
+	result = result .. ">"
+
+	if contents then
+		local flat = { }
+		flatten_contents( contents, flat )
+
+		return { result .. table.concat( flat ) .. "</" .. element .. ">", blessing = bless_key }
+	end
+
+	return { result, blessing = bless_key }
+end
+
+local function element_mt( element )
+	return setmetatable( { }, {
+		__index = function( self, selector )
+			return function( attr_or_contents, maybe_contents )
+				return build_element( element, selector, attr_or_contents, maybe_contents )
+			end
+		end,
+
+		__call = function( self, ... )
+			return self[ "" ]( ... )
+		end,
+	} )
+end
+
 local mt = {
 	__index = function( _, key )
-		key = key:lower()
-
-		return function( attr_or_contents, contents )
-			local attr = { }
-			if not attr_or_contents or type( attr_or_contents ) == "string" or attr_or_contents[ 1 ] then
-				contents = attr_or_contents
-			else
-				attr = attr_or_contents
-			end
-
-			local result = "<" .. key
-
-			for k, v in pairs( attr ) do
-				result = result .. " " .. k .. "=\"" .. tostring( v ):url_escape() .. "\""
-			end
-
-			result = result .. ">"
-
-			if contents then
-				local flat = { }
-				flatten_contents( contents, flat )
-
-				return { result .. table.concat( flat ) .. "</" .. key .. ">", blessing = bless_key }
-			end
-
-			return { result, blessing = bless_key }
-		end
+		return element_mt( key:lower() )
 	end
 }
 
