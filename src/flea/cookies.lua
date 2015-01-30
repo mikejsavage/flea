@@ -23,6 +23,10 @@ function _M.make( name, value, expires, options )
 	cookie = cookie .. "; expires=" .. expires_date
 
 	if options then
+		if options.httponly == nil then
+			options.httponly = true
+		end
+
 		check_option( "path" )
 		check_option( "domain" )
 
