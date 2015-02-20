@@ -10,6 +10,7 @@ local _M = { }
 local function request_noop_write()
 	local function noop() end
 	request.write = noop
+	request.header = noop
 end
 
 local function request_add_methods( request )
@@ -34,24 +35,25 @@ local function request_add_methods( request )
 	end
 
 	request.header = function( self, header, value )
+		if header:find( "[\r\n]" ) or value:find( "[\r\n]" ) then
 		table.insert( self.new_headers, header .. ": " .. value )
 	end
 
 	request.redirect = function( self, url )
-		request_noop_write( self )
-
 		self:header( "Location", url )
 		self:clear()
 		self:write( "we moved bro" )
+
+		request_noop_write( self )
 
 		return { 302, "Found" }
 	end
 
 	request.bad_request = function( self )
-		request_noop_write( self )
-
 		self:clear()
 		self:write( "<h1>400 Bad Request</h1>" )
+
+		request_noop_write( self )
 
 		self.status = { 400, "Bad Request" }
 	end
@@ -61,19 +63,19 @@ local function request_add_methods( request )
 	end
 
 	request.forbidden = function( self )
-		request_noop_write( self )
-
 		self:clear()
 		self:write( "<h1>403 Forbidden</h1>" )
+
+		request_noop_write( self )
 
 		self.status = { 403, "Forbidden" }
 	end
 
 	request.not_found = function( self )
-		request_noop_write( self )
-
 		self:clear()
 		self:write( "<h1>404 Not Found</h1>" )
+
+		request_noop_write( self )
 
 		self.status = { 404, "Not Found" }
 	end
