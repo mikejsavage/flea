@@ -7,6 +7,11 @@ local time = require( "flea.time" )
 
 local _M = { }
 
+local function request_noop_write()
+	local function noop() end
+	request.write = noop
+end
+
 local function request_add_methods( request )
 	request.write = function( self, str )
 		table.insert( self.body, str )
@@ -33,6 +38,8 @@ local function request_add_methods( request )
 	end
 
 	request.redirect = function( self, url )
+		request_noop_write( self )
+
 		self:header( "Location", url )
 		self:clear()
 		self:write( "we moved bro" )
@@ -41,6 +48,8 @@ local function request_add_methods( request )
 	end
 
 	request.bad_request = function( self )
+		request_noop_write( self )
+
 		self:clear()
 		self:write( "<h1>400 Bad Request</h1>" )
 
@@ -52,6 +61,8 @@ local function request_add_methods( request )
 	end
 
 	request.forbidden = function( self )
+		request_noop_write( self )
+
 		self:clear()
 		self:write( "<h1>403 Forbidden</h1>" )
 
@@ -59,6 +70,8 @@ local function request_add_methods( request )
 	end
 
 	request.not_found = function( self )
+		request_noop_write( self )
+
 		self:clear()
 		self:write( "<h1>404 Not Found</h1>" )
 
