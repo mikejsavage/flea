@@ -36,7 +36,10 @@ local function request_add_methods( request )
 
 	request.header = function( self, header, value )
 		if header:find( "[\r\n]" ) or value:find( "[\r\n]" ) then
-		table.insert( self.new_headers, header .. ": " .. value )
+			self:bad_request()
+		else
+			table.insert( self.new_headers, header .. ": " .. value )
+		end
 	end
 
 	request.redirect = function( self, url )
