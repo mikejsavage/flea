@@ -1,6 +1,6 @@
 getmetatable( "" ).__mod = function( self, form )
 	if type( form ) == "table" then
-		return self:format( unpack( form ) )
+		return self:format( table.unpack( form ) )
 	end
 
 	return self:format( form )
