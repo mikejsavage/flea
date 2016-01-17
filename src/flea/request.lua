@@ -7,7 +7,7 @@ local time = require( "flea.time" )
 
 local _M = { }
 
-local function request_noop_write()
+local function request_noop_write( request )
 	local function noop() end
 	request.write = noop
 	request.header = noop
