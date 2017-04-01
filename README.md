@@ -4,7 +4,8 @@ Flea is a Lua web framework that aims to be tiny and secure by default.
 Requirements
 ------------
 
-lua >= 5.1, fcgi, lua-cjson, symmetric, arc4random
+lua >= 5.1, `luarocks install fcgi`, `luarocks install lua-cjson`,
+`luarocks install symmetric`, `luarocks install arc4random`
 
 
 Secure by default
